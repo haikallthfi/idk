@@ -1,0 +1,73 @@
+env:
+    credentials: "ENCRYPTED[023014750463bb8fbf084fd71db3bc03467950f893b5a54e6057f989f2a4c1c1c39fe550e71ea24504674f5aadf10fa8]"
+    rcloneconfig_b64: "ENCRYPTED[de9f7cd151552476b7e5c161e77c11cb052938eb438cb1fc028924c026cac4f0a5dfafb20918c68ace1929057c796e35]"
+    tokentl: "ENCRYPTED[ecc1c3cbf8bf19e567630ed369abd9a39ab9027f7bcc082aa319acbdb92ec5fbc51d9e0380b230e5472c09bcb35566a9]"
+    idtl: "ENCRYPTED[352097e08c05658389e0c8f7c2302708f19d86e14e1c1a9e1a15e98d30f4143ad5c8f6bdb9f73d4882beef5fd419c419]"
+    lunch: lunch lineage_surya-user
+    make: make bacon
+
+task:
+  name: "Setting Up, Syncing, Building and Uploading..."
+  timeout_in: 115m
+  container:
+      image: memedo/paiskomom:knjt
+      cpu: 8
+      memory: 32G
+
+  Build-Env-Setup_background_script:
+       - export DEBIAN_FRONTEND=noninteractive
+       - mkdir -p ~/.config/rclone
+       - echo "$rcloneconfig_b64" | base64 -d > ~/.config/rclone/rclone.conf
+       - git config --global user.name "paiskomom"
+       - git config --global user.email "midooneteam@gmail.com"
+       - echo "$credentials" > ~/.git-credentials
+       - git config --global credential.helper store --file=~/.git-credentials
+       - mkdir -p ~/ccache
+       - rclone copy komom:lineage/ccache.tar.gz ~/ -P
+       - cd ~/
+       - time tar xf ccache.tar.gz
+       - cd ~/
+
+  Storage-Checker_background_script:
+      - df -h
+      - lsblk
+      - ls -l -a -h
+      - ./w.sh
+
+  Sync_script:
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="🔄 Start sync Source. . ."
+      - mkdir -p ~/rom
+      - cd ~/rom
+      - sudo curl --create-dirs -L -o /usr/local/bin/repoo -O -L https://storage.googleapis.com/git-repo-downloads/repo
+      - sudo chmod a+rx /usr/local/bin/repoo
+      - repo init -q --no-repo-verify --depth=1 -u https://github.com/LineageOS-Revived/android.git -b lineage-17.1
+      - git clone --depth 1 https://github.com/paiskomom/local_manifest.git -b surya-10 .repo/local_manifests
+      - sudo apt-get update && sudo apt-get install -y git-lfs && git lfs install
+      - rm -rf .repo/repo && git clone https://gerrit.googlesource.com/git-repo .repo/repo
+      - repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j8
+      - repo forall -c 'git lfs install && git lfs pull && git lfs checkout'
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="✅ Sync Completed!"
+
+  Build_script:
+      - export BUILD_USERNAME="haikaru17"
+      - export BUILD_USER="haikaru17"
+      - export BUILD_HOSTNAME="ubuntu"
+      - export BUILD_HOST="ubuntu"
+      - sudo ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="🛠️ Boeild lineage Started! https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"
+      - ./collect.sh
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="⏳ Build script selesai. Lanjut ke proses upload ccache atau zip ROM."
+
+  Upload_script:
+      - |
+        if ls ~/rom/out/target/product/surya/lineage*.zip 1> /dev/null 2>&1; then
+            bash upload.sh
+            curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="🚀 Build Process Finished!"
+        else
+            curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="❌ Build Zip not found, skipping rom upload..."
+        fi
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="📦 Compressing ccache..."
+      - ./ziping.sh
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="📤 Uploading ccache..."
+      - rclone copy ~/ccache.tar.gz komom:lineage -P
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="✅ ccache Uploaded Successfully!"
