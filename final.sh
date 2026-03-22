@@ -11,5 +11,5 @@ ccache -o compression=true
 ccache -z
 
 $lunch
-$make -j4
+$make -j8
 
