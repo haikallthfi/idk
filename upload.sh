@@ -1,11 +1,11 @@
 #!/bin/bash
 
-ZIP_PATH=$(ls -t ~/rom/out/target/product/whyred/conquerOS*.zip | head -n 1)
+ZIP_PATH=$(ls -t ~/rom/out/target/product/whyred/qassa*.zip | head -n 1)
 ZIP_NAME=$(basename "$ZIP_PATH")
 
 if [ -f "$ZIP_PATH" ]; then
     curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="📤 Uploading Build: $ZIP_NAME"
-    rclone copy "$ZIP_PATH" komom:conquer -P
+    rclone copy "$ZIP_PATH" komom:qassa -P
     curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="✅ Build $ZIP_NAME Uploaded Successfully!"
 else
     echo "Zip file not found!"
