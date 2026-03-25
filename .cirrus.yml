@@ -7,8 +7,8 @@ env:
     JAVA_OPTS: "-Xmx8g"
     NINJA_ARGS: "-j8"
     XZ_OPT: "-T2"
-    lunch: lunch rr_whyred-user
-    make: mka bacon
+    lunch: lunch pa_whyred-user
+    make: ./rom-build.sh whyred
     LANG: "C.UTF-8"
     LC_ALL: "C.UTF-8"
 
@@ -31,7 +31,7 @@ task:
        - echo "$credentials" > ~/.git-credentials
        - git config --global credential.helper store --file=~/.git-credentials
        - mkdir -p ~/ccache
-       - rclone copy komom:komom/ccache.tar.gz ~/ -P
+       - rclone copy komom:pa/ccache.tar.gz ~/ -P
        - cd ~/
        - time tar xf ccache.tar.gz
        - rm -f ~/ccache.tar.gz
@@ -49,8 +49,8 @@ task:
       - cd ~/rom
       - sudo curl --create-dirs -L -o /usr/local/bin/repoo -O -L https://storage.googleapis.com/git-repo-downloads/repo
       - sudo chmod a+rx /usr/local/bin/repoo
-      - repo init -q --no-repo-verify --depth=1 -u https://github.com/paiskomom/platform_manifest -b Q
-      - git clone --depth 1 https://github.com/haikallthfi/local_manifest -b rros-whyred .repo/local_manifests
+      - repo init -q --no-repo-verify --depth=1 -u https://github.com/haikallthfi/pa_manifest -b quartz
+      - git clone --depth 1 https://github.com/haikallthfi/local_manifest -b pa-whyred .repo/local_manifests
       - sudo apt-get update && sudo apt-get install -y git-lfs && git lfs install
       - rm -rf .repo/repo && git clone https://gerrit.googlesource.com/git-repo .repo/repo
       - repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j8
@@ -63,14 +63,13 @@ task:
       - export BUILD_HOSTNAME="ubuntu"
       - export BUILD_HOST="ubuntu"
       - export WITH_DEXPREOPT=true
-      - export TARGET_FACE_UNLOCK_SUPPORTED=true
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="🛠️ Boeild RROS Started! https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="🛠️ Boeild pa Started! https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"
       - ./collect.sh
       - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="⏳ Build script selesai. Lanjut ke proses upload ccache atau zip ROM."
 
   Upload_script:
       - |
-        if ls ~/rom/out/target/product/whyred/RROS*.zip 1> /dev/null 2>&1; then
+        if ls ~/rom/out/target/product/whyred/pa-quartz*.zip 1> /dev/null 2>&1; then
             bash upload.sh
             curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="🚀 Build Process Finished!"
         else
@@ -79,5 +78,5 @@ task:
       - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="📦 Compressing ccache..."
       - ./ziping.sh
       - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="📤 Uploading ccache..."
-      - rclone copy ~/ccache.tar.gz komom:komom -P
+      - rclone copy ~/ccache.tar.gz komom:pa -P
       - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=$idtl -d text="✅ ccache Uploaded Successfully!"
